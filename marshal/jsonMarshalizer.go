@@ -3,25 +3,30 @@ package marshal
 import (
 	"encoding/json"
 	"errors"
+	"sync"
 )
 
 // JsonMarshalizer implements Marshalizer interface using JSON format
 type JsonMarshalizer struct {
+	mut sync.Mutex
 }
 
 // Marshal tries to serialize obj parameter
-func (j JsonMarshalizer) Marshal(obj interface{}) ([]byte, error) {
+func (j *JsonMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	if obj == nil {
-		return nil, errors.New("NIL object to serilize from!")
+		return nil, errors.New("nil object to serilize from")
 	}
+
+	j.mut.Lock()
+	defer j.mut.Unlock()
 
 	return json.Marshal(obj)
 }
 
 // Unmarshal tries to deserialize input buffer values into input object
-func (j JsonMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
+func (j *JsonMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 	if obj == nil {
-		return errors.New("nil object to serilize to")
+		return errors.New("nil object to deserialize to")
 	}
 	if buff == nil {
 		return errors.New("nil byte buffer to deserialize from")
@@ -29,6 +34,9 @@ func (j JsonMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 	if len(buff) == 0 {
 		return errors.New("empty byte buffer to deserialize from")
 	}
+
+	j.mut.Lock()
+	defer j.mut.Unlock()
 
 	return json.Unmarshal(buff, obj)
 }
