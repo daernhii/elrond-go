@@ -86,6 +86,7 @@ func NewNetworkMessenger(
 		libp2p.DefaultSecurity,
 		libp2p.ConnectionManager(conMgr),
 		libp2p.DefaultTransports,
+		libp2p.NATPortMap(),
 	}
 
 	h, err := libp2p.New(ctx, opts...)
