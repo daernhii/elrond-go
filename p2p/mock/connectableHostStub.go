@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/libp2p/go-libp2p-core/connmgr"
-	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -13,7 +12,6 @@ import (
 )
 
 type ConnectableHostStub struct {
-	EventBusCalled              func() event.Bus
 	IDCalled                    func() peer.ID
 	PeerstoreCalled             func() peerstore.Peerstore
 	AddrsCalled                 func() []multiaddr.Multiaddr
@@ -27,10 +25,6 @@ type ConnectableHostStub struct {
 	CloseCalled                 func() error
 	ConnManagerCalled           func() connmgr.ConnManager
 	ConnectToPeerCalled         func(ctx context.Context, address string) error
-}
-
-func (hs *ConnectableHostStub) EventBus() event.Bus {
-	return hs.EventBusCalled()
 }
 
 func (hs *ConnectableHostStub) ConnectToPeer(ctx context.Context, address string) error {
