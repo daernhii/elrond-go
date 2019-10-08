@@ -1,4 +1,4 @@
-package arwen
+package wasm
 
 import (
 	"encoding/hex"
