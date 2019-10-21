@@ -146,6 +146,34 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalReturnsEmptySliceSh
 	assert.Equal(t, process.ErrNoDataInMessage, err)
 }
 
+func TestMultiDataInterceptor_ProcessReceivedMessageSystemBusyShouldRetNil(t *testing.T) {
+	t.Parallel()
+
+	throttler := &mock.InterceptorThrottlerStub{
+		CanProcessCalled: func() bool {
+			return false
+		},
+	}
+	mdi, _ := interceptors.NewMultiDataInterceptor(
+		&mock.MarshalizerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				return nil
+			},
+		},
+		&mock.InterceptedDataFactoryStub{},
+		&mock.InterceptorProcessorStub{},
+		throttler,
+	)
+
+	msg := &mock.P2PMessageMock{
+		DataField: []byte("data to be processed"),
+	}
+	err := mdi.ProcessReceivedMessage(msg, nil)
+
+	assert.Nil(t, err)
+	assert.Equal(t, int32(0), throttler.StartProcessingCount())
+}
+
 func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldNotResend(t *testing.T) {
 	t.Parallel()
 

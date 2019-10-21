@@ -134,6 +134,29 @@ func TestSingleDataInterceptor_ProcessReceivedMessageFactoryCreationErrorShouldE
 	assert.Equal(t, errExpected, err)
 }
 
+func TestSingleDataInterceptor_ProcessReceivedMessageSystemBusyShouldRetNil(t *testing.T) {
+	t.Parallel()
+
+	throttler := &mock.InterceptorThrottlerStub{
+		CanProcessCalled: func() bool {
+			return false
+		},
+	}
+	sdi, _ := interceptors.NewSingleDataInterceptor(
+		&mock.InterceptedDataFactoryStub{},
+		&mock.InterceptorProcessorStub{},
+		throttler,
+	)
+
+	msg := &mock.P2PMessageMock{
+		DataField: []byte("data to be processed"),
+	}
+	err := sdi.ProcessReceivedMessage(msg, nil)
+
+	assert.Nil(t, err)
+	assert.Equal(t, int32(0), throttler.StartProcessingCount())
+}
+
 func TestSingleDataInterceptor_ProcessReceivedMessageIsNotValidShouldNotCallProcess(t *testing.T) {
 	t.Parallel()
 

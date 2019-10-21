@@ -16,11 +16,9 @@ func preProcessMesage(throttler process.InterceptorThrottler, message p2p.Messag
 		return process.ErrNilDataToProcess
 	}
 
-	//TODO(jls) revise this
-	// maybe treat the error and return nil on ProcessReceivedMessage as to not disturb the network
-	//if !throttler.CanProcess() {
-	//	return process.ErrSystemBusy
-	//}
+	if !throttler.CanProcess() {
+		return process.ErrSystemBusy
+	}
 
 	throttler.StartProcessing()
 	return nil

@@ -56,6 +56,11 @@ func NewMultiDataInterceptor(
 func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error {
 	err := preProcessMesage(mdi.throttler, message)
 	if err != nil {
+		if err == process.ErrSystemBusy {
+			//return nil as to allow the message to be propagated through the network
+			return nil
+		}
+
 		return err
 	}
 

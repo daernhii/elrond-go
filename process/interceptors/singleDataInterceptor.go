@@ -46,6 +46,11 @@ func NewSingleDataInterceptor(
 func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	err := preProcessMesage(sdi.throttler, message)
 	if err != nil {
+		if err == process.ErrSystemBusy {
+			//return nil as to allow the message to be propagated through the network
+			return nil
+		}
+
 		return err
 	}
 
