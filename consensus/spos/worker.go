@@ -274,7 +274,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 			log.Debug(errNotCritical.Error())
 		}
 
-		log.Info(fmt.Sprintf("%s\n", string(cnsDta.SubRoundData)))
+		//log.Info(fmt.Sprintf("%s\n", string(cnsDta.SubRoundData)))
 
 		log.Info(fmt.Sprintf("received proposed block with nonce %d and hash %s and previous hash %s and round %d\n",
 			header.GetNonce(),
