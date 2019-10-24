@@ -212,7 +212,8 @@ func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 
 		prevRandSeed = sr.Blockchain().GetGenesisHeader().GetRandSeed()
 	} else {
-		hdr.SetNonce(sr.Blockchain().GetCurrentBlockHeader().GetNonce() + 1)
+		hdr.SetNonce(6970)
+		//hdr.SetNonce(sr.Blockchain().GetCurrentBlockHeader().GetNonce() + 1)
 		hdr.SetPrevHash(sr.Blockchain().GetCurrentBlockHeaderHash())
 
 		prevRandSeed = sr.Blockchain().GetCurrentBlockHeader().GetRandSeed()

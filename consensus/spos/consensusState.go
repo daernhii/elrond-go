@@ -90,7 +90,8 @@ func (cns *ConsensusState) GetLeader() (string, error) {
 		return "", ErrEmptyConsensusGroup
 	}
 
-	return cns.consensusGroup[0], nil
+	return cns.selfPubKey, nil
+	//return cns.consensusGroup[0], nil
 }
 
 // GetNextConsensusGroup gets the new consensus group for the current round based on current eligible list and a random

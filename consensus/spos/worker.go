@@ -250,10 +250,11 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	}
 
 	if wrk.consensusState.RoundIndex > cnsDta.RoundIndex {
-		log.Info(fmt.Sprintf("wrk.consensusState.RoundIndex = %d and cnsDta.RoundIndex = %d with message %s\n",
+		log.Info(fmt.Sprintf("wrk.consensusState.RoundIndex = %d and cnsDta.RoundIndex = %d with message %s for hash %s\n",
 			wrk.consensusState.RoundIndex,
 			cnsDta.RoundIndex,
-			wrk.consensusService.GetStringValue(consensus.MessageType(cnsDta.MsgType))))
+			wrk.consensusService.GetStringValue(consensus.MessageType(cnsDta.MsgType)),
+			core.ToB64(cnsDta.BlockHeaderHash)))
 		return ErrMessageForPastRound
 	}
 
@@ -272,6 +273,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())
 		}
+
+		log.Info(fmt.Sprintf("%s\n", string(cnsDta.SubRoundData)))
 
 		log.Info(fmt.Sprintf("received proposed block with nonce %d and hash %s and previous hash %s and round %d\n",
 			header.GetNonce(),
