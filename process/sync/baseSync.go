@@ -474,6 +474,9 @@ func (boot *baseBootstrap) ShouldSync() bool {
 		log.Info(fmt.Sprintf("node has changed its synchronized state to %v\n", isNodeSynchronized))
 		boot.isNodeSynchronized = isNodeSynchronized
 		boot.notifySyncStateListeners(isNodeSynchronized)
+		if !isNodeSynchronized {
+			time.Sleep(10 * time.Second)
+		}
 	}
 
 	boot.roundIndex = boot.rounder.Index()
