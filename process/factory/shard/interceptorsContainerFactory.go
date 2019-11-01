@@ -20,7 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const numGoRoutines = 2000
+//const numGoRoutines = 2000
 
 type interceptorsContainerFactory struct {
 	accounts               state.AccountsAdapter
@@ -132,11 +132,17 @@ func NewInterceptorsContainerFactory(
 		maxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
 	}
 
-	var err error
-	icf.globalTxThrottler, err = throttler.NewNumGoRoutineThrottler(numGoRoutines)
-	if err != nil {
-		return nil, err
-	}
+	//var err error
+	//icf.globalTxThrottler, err = throttler.NewNumGoRoutineThrottler(numGoRoutines)
+	//if err != nil {
+	//	return nil, err
+	//}
+	var targetSysMem uint64
+	targetSysMem = 1024 * 1024 * 1024 * 1.8 //1.8 GB
+	var targetGoMem uint64
+	targetGoMem = 1024 * 1024 * 700 //700 MB
+	var targetGoRoutines = int64(1000)
+	icf.globalTxThrottler, _ = throttler.NewResourceThrottler(targetSysMem, targetGoMem, targetGoRoutines)
 
 	return icf, nil
 }
