@@ -138,7 +138,7 @@ func NewInterceptorsContainerFactory(
 	//	return nil, err
 	//}
 	var targetSysMem uint64
-	targetSysMem = 1024 * 1024 * 1024 * 1.8 //1.8 GB
+	targetSysMem = 1024*1024*1024 + 800*1024*1024 //1.8 GB
 	var targetGoMem uint64
 	targetGoMem = 1024 * 1024 * 700 //700 MB
 	var targetGoRoutines = int64(1000)
