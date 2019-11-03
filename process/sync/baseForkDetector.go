@@ -12,9 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-// MinForkRound represents the minimum fork round set by a notarized header received
-const MinForkRound = uint64(0)
-
 type headerInfo struct {
 	nonce uint64
 	round uint64
@@ -380,21 +377,18 @@ func (bfd *baseForkDetector) IsInterfaceNil() bool {
 }
 
 // CheckFork method checks if the node could be on the fork
-func (bfd *baseForkDetector) CheckFork() (bool, uint64, []byte) {
+func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 	var (
-		lowestForkNonce        uint64
-		hashOfLowestForkNonce  []byte
-		lowestRoundInForkNonce uint64
-		forkHeaderHash         []byte
-		selfHdrInfo            *headerInfo
+		forkHeaderRound uint64
+		forkHeaderHash  []byte
+		selfHdrInfo     *headerInfo
 	)
 
-	lowestForkNonce = math.MaxUint64
-	hashOfLowestForkNonce = nil
-	forkDetected := false
+	forkInfo := process.ForkInfo{Detected: false, Nonce: math.MaxUint64, Round: math.MaxUint64, Hash: nil}
 
 	if bfd.shouldForceFork() {
-		return true, lowestForkNonce, hashOfLowestForkNonce
+		forkInfo.Detected = true
+		return &forkInfo
 	}
 
 	bfd.mutHeaders.Lock()
@@ -404,7 +398,7 @@ func (bfd *baseForkDetector) CheckFork() (bool, uint64, []byte) {
 		}
 
 		selfHdrInfo = nil
-		lowestRoundInForkNonce = math.MaxUint64
+		forkHeaderRound = math.MaxUint64
 		forkHeaderHash = nil
 
 		for i := 0; i < len(hdrInfos); i++ {
@@ -413,10 +407,10 @@ func (bfd *baseForkDetector) CheckFork() (bool, uint64, []byte) {
 				continue
 			}
 
-			forkHeaderHash, lowestRoundInForkNonce = bfd.computeForkInfo(
+			forkHeaderHash, forkHeaderRound = bfd.computeForkInfo(
 				hdrInfos[i],
 				forkHeaderHash,
-				lowestRoundInForkNonce)
+				forkHeaderRound)
 		}
 
 		if selfHdrInfo == nil {
@@ -424,11 +418,12 @@ func (bfd *baseForkDetector) CheckFork() (bool, uint64, []byte) {
 			continue
 		}
 
-		if bfd.shouldSignalFork(selfHdrInfo, forkHeaderHash, lowestRoundInForkNonce) {
-			forkDetected = true
-			if nonce < lowestForkNonce {
-				lowestForkNonce = nonce
-				hashOfLowestForkNonce = forkHeaderHash
+		if bfd.shouldSignalFork(selfHdrInfo, forkHeaderHash, forkHeaderRound) {
+			forkInfo.Detected = true
+			if nonce < forkInfo.Nonce {
+				forkInfo.Nonce = nonce
+				forkInfo.Round = forkHeaderRound
+				forkInfo.Hash = forkHeaderHash
 			}
 			continue
 		}
@@ -439,7 +434,7 @@ func (bfd *baseForkDetector) CheckFork() (bool, uint64, []byte) {
 	}
 	bfd.mutHeaders.Unlock()
 
-	return forkDetected, lowestForkNonce, hashOfLowestForkNonce
+	return &forkInfo
 }
 
 func (bfd *baseForkDetector) computeForkInfo(
@@ -450,7 +445,7 @@ func (bfd *baseForkDetector) computeForkInfo(
 
 	currentForkRound := headerInfo.round
 	if headerInfo.state == process.BHNotarized {
-		currentForkRound = MinForkRound
+		currentForkRound = process.MinForkRound
 	}
 
 	if currentForkRound < lastForkRound {

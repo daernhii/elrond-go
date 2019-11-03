@@ -242,10 +242,10 @@ func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceShouldReturnFalse(
 		process.BHProcessed,
 		nil,
 		nil)
-	forkDetected, lowestForkNonce, forkHash := bfd.CheckFork()
-	assert.False(t, forkDetected)
-	assert.Equal(t, uint64(math.MaxUint64), lowestForkNonce)
-	assert.Nil(t, forkHash)
+	forkInfo := bfd.CheckFork()
+	assert.False(t, forkInfo.Detected)
+	assert.Equal(t, uint64(math.MaxUint64), forkInfo.Nonce)
+	assert.Nil(t, forkInfo.Hash)
 }
 
 func TestBasicForkDetector_CheckForkMetaHeaderNotProcessedYetShouldReturnFalse(t *testing.T) {
@@ -268,10 +268,10 @@ func TestBasicForkDetector_CheckForkMetaHeaderNotProcessedYetShouldReturnFalse(t
 		process.BHReceived,
 		nil,
 		nil)
-	forkDetected, lowestForkNonce, forkHash := bfd.CheckFork()
-	assert.False(t, forkDetected)
-	assert.Equal(t, uint64(math.MaxUint64), lowestForkNonce)
-	assert.Nil(t, forkHash)
+	forkInfo := bfd.CheckFork()
+	assert.False(t, forkInfo.Detected)
+	assert.Equal(t, uint64(math.MaxUint64), forkInfo.Nonce)
+	assert.Nil(t, forkInfo.Hash)
 }
 
 func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenLowerRound(t *testing.T) {
@@ -303,10 +303,10 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenLowe
 	hInfos := bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))
 
-	forkDetected, lowestForkNonce, forkHash := bfd.CheckFork()
-	assert.False(t, forkDetected)
-	assert.Equal(t, uint64(math.MaxUint64), lowestForkNonce)
-	assert.Nil(t, forkHash)
+	forkInfo := bfd.CheckFork()
+	assert.False(t, forkInfo.Detected)
+	assert.Equal(t, uint64(math.MaxUint64), forkInfo.Nonce)
+	assert.Nil(t, forkInfo.Hash)
 
 	hInfos = bfd.GetHeaders(1)
 	assert.Equal(t, 1, len(hInfos))
@@ -339,10 +339,10 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenEqua
 	hInfos := bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))
 
-	forkDetected, lowestForkNonce, forkHash := bfd.CheckFork()
-	assert.False(t, forkDetected)
-	assert.Equal(t, uint64(math.MaxUint64), lowestForkNonce)
-	assert.Nil(t, forkHash)
+	forkInfo := bfd.CheckFork()
+	assert.False(t, forkInfo.Detected)
+	assert.Equal(t, uint64(math.MaxUint64), forkInfo.Nonce)
+	assert.Nil(t, forkInfo.Hash)
 
 	hInfos = bfd.GetHeaders(1)
 	assert.Equal(t, 1, len(hInfos))
@@ -397,10 +397,10 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 	hInfos := bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))
 
-	forkDetected, lowestForkNonce, forkHash := bfd.CheckFork()
-	assert.True(t, forkDetected)
-	assert.Equal(t, uint64(1), lowestForkNonce)
-	assert.Equal(t, hash2, forkHash)
+	forkInfo := bfd.CheckFork()
+	assert.True(t, forkInfo.Detected)
+	assert.Equal(t, uint64(1), forkInfo.Nonce)
+	assert.Equal(t, hash2, forkInfo.Hash)
 
 	hInfos = bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))
@@ -434,10 +434,10 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnTrueWhenEqual
 	hInfos := bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))
 
-	forkDetected, lowestForkNonce, forkHash := bfd.CheckFork()
-	assert.True(t, forkDetected)
-	assert.Equal(t, uint64(1), lowestForkNonce)
-	assert.Equal(t, []byte("hash1"), forkHash)
+	forkInfo := bfd.CheckFork()
+	assert.True(t, forkInfo.Detected)
+	assert.Equal(t, uint64(1), forkInfo.Nonce)
+	assert.Equal(t, []byte("hash1"), forkInfo.Hash)
 
 	hInfos = bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))
@@ -491,10 +491,10 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 	hInfos := bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))
 
-	forkDetected, lowestForkNonce, forkHash := bfd.CheckFork()
-	assert.True(t, forkDetected)
-	assert.Equal(t, uint64(1), lowestForkNonce)
-	assert.Equal(t, hash1, forkHash)
+	forkInfo := bfd.CheckFork()
+	assert.True(t, forkInfo.Detected)
+	assert.Equal(t, uint64(1), forkInfo.Nonce)
+	assert.Equal(t, hash1, forkInfo.Hash)
 
 	hInfos = bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))
@@ -529,10 +529,10 @@ func TestBasicForkDetector_CheckForkShouldReturnTrue(t *testing.T) {
 	hInfos := bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))
 
-	forkDetected, lowestForkNonce, forkHash := bfd.CheckFork()
-	assert.True(t, forkDetected)
-	assert.Equal(t, uint64(1), lowestForkNonce)
-	assert.Equal(t, []byte("hash2"), forkHash)
+	forkInfo := bfd.CheckFork()
+	assert.True(t, forkInfo.Detected)
+	assert.Equal(t, uint64(1), forkInfo.Nonce)
+	assert.Equal(t, []byte("hash2"), forkInfo.Hash)
 
 	hInfos = bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))

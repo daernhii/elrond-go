@@ -579,3 +579,10 @@ func AddHeaderToBlackList(blackListHandler BlackListHandler, hash []byte) {
 		log.Debug(err.Error())
 	}
 }
+
+type ForkInfo struct {
+	Detected bool
+	Nonce    uint64
+	Round    uint64
+	Hash     []byte
+}
