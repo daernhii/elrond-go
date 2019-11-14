@@ -11,8 +11,8 @@
     DenominationCoefficientForView = "0.0001"
 
 [FeeSettings]
-    MinGasPrice = "0"
-    MinGasLimit = "5"
+    MinGasPrice = "10"
+    MinGasLimit = "100"
 
 [ValidatorSettings]
     StakeValue = "500000000000000000000000"
