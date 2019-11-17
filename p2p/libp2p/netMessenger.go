@@ -552,10 +552,7 @@ func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerS
 		return p2p.ErrNilPeerShardResolver
 	}
 
-	kadSharder, err := networksharding.NewKadSharder(kadSharderPrioBits, peerShardResolver)
-	if err != nil {
-		return err
-	}
+	kadSharder := networksharding.NewKadSharderWithLists(peerShardResolver)
 
 	return netMes.connMonitor.SetSharder(kadSharder)
 }
