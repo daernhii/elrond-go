@@ -27,6 +27,6 @@ func (ns *noSharder) GetDistance(a, b sortingID) *big.Int {
 }
 
 // SortList sort the list
-func (ns *noSharder) SortList(peers []peer.ID, ref peer.ID) []peer.ID {
-	return sortList(ns, peers, ref)
+func (ns *noSharder) SortList(peers []peer.ID, ref peer.ID) ([]peer.ID, bool) {
+	return sortList(ns, peers, ref), true
 }
