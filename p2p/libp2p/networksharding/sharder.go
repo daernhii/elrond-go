@@ -2,7 +2,6 @@ package networksharding
 
 import (
 	"math/big"
-	"sort"
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -73,12 +72,5 @@ func getSortingList(s Sharder, peers []peer.ID, ref peer.ID) *sortingList {
 
 func sortList(s Sharder, peers []peer.ID, ref peer.ID) []peer.ID {
 	sl := getSortingList(s, peers, ref)
-	sort.Sort(sl)
-
-	ret := make([]peer.ID, len(peers))
-
-	for i, id := range sl.peers {
-		ret[i] = id.id
-	}
-	return ret
+	return sl.SortedPeers()
 }

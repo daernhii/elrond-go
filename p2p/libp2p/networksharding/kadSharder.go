@@ -15,7 +15,7 @@ const (
 // KadPeerShardResolver peer to shard mapping interface
 type KadPeerShardResolver interface {
 	ByID(p2p.PeerID) uint32 //ByID get the shard id of the given peer.ID
-	IsBalanced() bool       //IsBalanced checks if the sharding is balanced and connections initiation can be paused
+	NumShards() int         //NumShards get the number of shards
 	IsInterfaceNil() bool   //IsInterfaceNil returns true if there is no value under the interface
 }
 
@@ -77,5 +77,8 @@ func (ks *kadSharder) GetDistance(a, b sortingID) *big.Int {
 
 // SortList sort the provided peers list
 func (ks *kadSharder) SortList(peers []peer.ID, ref peer.ID) ([]peer.ID, bool) {
-	return sortList(ks, peers, ref), ks.resolver.IsBalanced()
+	sl := getSortingList(ks, peers, ref)
+	// for balance we just try to keep at least 1 connection ouside of shard
+	balanced := len(peers) > sl.InShardCount()
+	return sl.SortedPeers(), balanced
 }
