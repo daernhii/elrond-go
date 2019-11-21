@@ -10,6 +10,10 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
+const (
+	watchdogTimeout = 5 * time.Minute
+)
+
 // DurationBetweenReconnectAttempts is used as to not call reconnecter.ReconnectToNetwork() to often
 // when there are a lot of peers disconnecting and reconnection to initial nodes succeed
 var DurationBetweenReconnectAttempts = time.Second * 5
@@ -21,6 +25,7 @@ type libp2pConnectionMonitor struct {
 	thresholdDiscoveryResume   int // if the number of connections drops under this value, the discovery is restarted
 	thresholdDiscoveryPause    int // if the number of connections is over this value, the discovery is stopped
 	thresholdConnTrim          int // if the number of connections is over this value, we start trimming
+	watchdogKick               chan struct{}
 }
 
 func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnectedPeers int, targetConnCount int) (*libp2pConnectionMonitor, error) {
@@ -35,6 +40,7 @@ func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnect
 		thresholdDiscoveryResume:   0,
 		thresholdDiscoveryPause:    math.MaxInt32,
 		thresholdConnTrim:          math.MaxInt32,
+		watchdogKick:               nil,
 	}
 
 	if targetConnCount > 0 {
@@ -45,6 +51,7 @@ func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnect
 
 	if reconnecter != nil {
 		go cm.doReconnection()
+		cm.watchdogKick = reconnecter.StartWatchdog(watchdogTimeout)
 	}
 
 	return cm, nil
@@ -64,6 +71,15 @@ func (lcm *libp2pConnectionMonitor) doReconn() {
 	}
 }
 
+func (lcm *libp2pConnectionMonitor) kickWatchdog() {
+	if lcm.watchdogKick != nil {
+		select {
+		case lcm.watchdogKick <- struct{}{}:
+		default:
+		}
+	}
+}
+
 // Connected is called when a connection opened
 func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network.Conn) {
 	if len(netw.Conns()) > lcm.thresholdConnTrim {
@@ -76,6 +92,7 @@ func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network
 			lcm.reconnecter.Pause()
 		}
 	}
+	lcm.kickWatchdog()
 }
 
 // Disconnected is called when a connection closed
@@ -86,6 +103,7 @@ func (lcm *libp2pConnectionMonitor) Disconnected(netw network.Network, conn netw
 		lcm.reconnecter.Resume()
 		lcm.doReconn()
 	}
+	lcm.kickWatchdog()
 }
 
 func (lcm *libp2pConnectionMonitor) doReconnectionIfNeeded(netw network.Network) {
