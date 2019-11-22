@@ -2,7 +2,7 @@
 [GeneralSettings]
    # DestinationShardAsObserver represents the desired shard when running as observer
    # value will be given as string. For example: "0", "1", "15", "metachain"
-   DestinationShardAsObserver = "0"
+   DestinationShardAsObserver = "metachain"
 
    # NetworkID will be used for network versions
    NetworkID = "undefined"
@@ -56,6 +56,17 @@
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
         MaxBatchSize = 30
+        MaxOpenFiles = 10
+
+[BootstrapStorage]
+    [BootstrapStorage.Cache]
+        Size = 1000
+        Type = "LRU"
+    [BootstrapStorage.DB]
+        FilePath = "BootstrapData"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 30
+        MaxBatchSize = 1
         MaxOpenFiles = 10
 
 [PeerDataStorage]

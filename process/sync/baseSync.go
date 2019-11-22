@@ -2,6 +2,7 @@ package sync
 
 import (
 	"bytes"
+	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -56,15 +57,14 @@ type baseBootstrap struct {
 	blkExecutor process.BlockProcessor
 	store       dataRetriever.StorageService
 
-	rounder             consensus.Rounder
-	hasher              hashing.Hasher
-	marshalizer         marshal.Marshalizer
-	forkDetector        process.ForkDetector
-	shardCoordinator    sharding.Coordinator
-	accounts            state.AccountsAdapter
-	storageBootstrapper storageBootstrapper
-	blockBootstrapper   blockBootstrapper
-	blackListHandler    process.BlackListHandler
+	rounder           consensus.Rounder
+	hasher            hashing.Hasher
+	marshalizer       marshal.Marshalizer
+	forkDetector      process.ForkDetector
+	shardCoordinator  sharding.Coordinator
+	accounts          state.AccountsAdapter
+	blockBootstrapper blockBootstrapper
+	blackListHandler  process.BlackListHandler
 
 	mutHeader     sync.RWMutex
 	headerNonce   *uint64
@@ -91,7 +91,6 @@ type baseBootstrap struct {
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
-	bootstrapRoundIndex   uint64
 	requestsWithTimeout   uint32
 
 	requestMiniBlocks func(uint32, uint64)
@@ -103,6 +102,8 @@ type baseBootstrap struct {
 	headerNonceHashStore storage.Storer
 	hdrRes               dataRetriever.HeaderResolver
 	syncStarter          syncStarter
+	bootStorer           process.BootStorer
+	storageBootstrapper  process.BootstrapperFromStorage
 }
 
 func (boot *baseBootstrap) loadBlocks(
@@ -304,6 +305,8 @@ func (boot *baseBootstrap) getMetaHeaderFromStorage(
 	header, err := process.GetMetaHeaderFromStorage(headerHash, boot.marshalizer, boot.store)
 
 	return header, headerHash, err
+	bootStorer           process.BootStorer
+	storageBootstrapper  process.BootstrapperFromStorage
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -824,6 +827,10 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		}
 
 		boot.statusHandler.Decrement(core.MetricCountConsensusAcceptedBlocks)
+		err = boot.bootStorer.SaveLastRound(int64(prevHeader.GetRound()))
+		if err != nil {
+			log.Info(fmt.Sprintf("cannot save last round in storage %s", err.Error()))
+		}
 
 		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
 		if shouldAddHeaderToBlackList {
@@ -834,7 +841,6 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		if shouldContinueRollBack {
 			continue
 		}
-
 		break
 	}
 
@@ -937,34 +943,6 @@ func (boot *baseBootstrap) rollBackOnForcedFork() {
 
 	boot.forkDetector.ResetProbableHighestNonce()
 	boot.forkDetector.ResetFork()
-}
-
-func (boot *baseBootstrap) addHeaderToForkDetector(
-	shardId uint32,
-	nonce uint64,
-	withFinalHeaders bool,
-) {
-
-	header, headerHash, errNotCritical := boot.storageBootstrapper.getHeader(shardId, nonce)
-	if errNotCritical != nil {
-		log.Debug("getHeader", "error", errNotCritical.Error())
-		return
-	}
-
-	var finalHeaders []data.HeaderHandler
-	var finalHeadersHashes [][]byte
-
-	if withFinalHeaders {
-		finalHeaders = append(finalHeaders, header)
-		finalHeadersHashes = append(finalHeadersHashes, headerHash)
-	}
-
-	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes, false)
-	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
-	}
-
-	return
 }
 
 func (boot *baseBootstrap) restoreState(
