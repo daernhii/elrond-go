@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -94,9 +93,8 @@ func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
 }
 
 // StartBackgroundServices starts all background services needed for the correct functionality of the node
-func (ef *ElrondNodeFacade) StartBackgroundServices(wg *sync.WaitGroup) {
-	wg.Add(1)
-	go ef.startRest(wg)
+func (ef *ElrondNodeFacade) StartBackgroundServices() {
+	go ef.startRest()
 }
 
 // IsNodeRunning gets if the underlying node is running
@@ -146,9 +144,7 @@ func (ef *ElrondNodeFacade) PrometheusNetworkID() string {
 	return ef.config.PrometheusJobName
 }
 
-func (ef *ElrondNodeFacade) startRest(wg *sync.WaitGroup) {
-	defer wg.Done()
-
+func (ef *ElrondNodeFacade) startRest() {
 	switch ef.RestApiPort() {
 	case DefaultRestPortOff:
 		ef.log.Info(fmt.Sprintf("Web server is off"))

@@ -16,7 +16,6 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -369,10 +368,6 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	log.SetLevel(logLevel)
 
 	enableGopsIfNeeded(ctx, log)
-
-	stop := make(chan bool, 1)
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	log.Info(fmt.Sprintf("Starting node with version %s\n", version))
 	log.Info(fmt.Sprintf("Process ID: %d\n", os.Getpid()))
@@ -785,9 +780,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	ef.SetTpsBenchmark(tpsBenchmark)
 	ef.SetConfig(efConfig)
 
-	wg := sync.WaitGroup{}
-	go ef.StartBackgroundServices(&wg)
-	wg.Wait()
+	ef.StartBackgroundServices()
 
 	if !ctx.Bool(withUI.Name) {
 		log.Info("Bootstrapping node....")
@@ -798,14 +791,11 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 	}
 
-	go func() {
-		<-sigs
-		log.Info("terminating at user's signal...")
-		stop <- true
-	}()
-
 	log.Info("Application is now running...")
-	<-stop
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	<-sigs
+	log.Info("terminating at user's signal...")
 
 	if rm != nil {
 		err = rm.Close()
