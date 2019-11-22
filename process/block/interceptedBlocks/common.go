@@ -7,20 +7,24 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var log = logger.GetOrCreate("process/block/interceptedBlocks")
+
 // headerMultiSigVerifier is an "abstract" struct that is able to verify the signature of a header handler
 type headerSigVerifier struct {
-	marshalizer          marshal.Marshalizer
-	hasher               hashing.Hasher
-	nodesCoordinator     sharding.NodesCoordinator
-	multiSigVerifier     crypto.MultiSigVerifier
-	singleSigVerifier    crypto.SingleSigner
-	keyGen               crypto.KeyGenerator
-	copyHeaderWithoutSig func(src data.HeaderHandler) data.HeaderHandler
+	marshalizer                marshal.Marshalizer
+	hasher                     hashing.Hasher
+	nodesCoordinator           sharding.NodesCoordinator
+	multiSigVerifier           crypto.MultiSigVerifier
+	singleSigVerifier          crypto.SingleSigner
+	keyGen                     crypto.KeyGenerator
+	copyHeaderWithoutSig       func(src data.HeaderHandler) data.HeaderHandler
+	copyHeaderWithoutLeaderSig func(src data.HeaderHandler) data.HeaderHandler
 }
 
 func (hsv *headerSigVerifier) verifySig(header data.HeaderHandler) error {
@@ -65,26 +69,45 @@ func (hsv *headerSigVerifier) verifySig(header data.HeaderHandler) error {
 	return verifier.Verify(hash, bitmap)
 }
 
-func (hsv *headerSigVerifier) verifyRandSeed(header data.HeaderHandler) error {
+func (hsv *headerSigVerifier) verifyRandSeedAndLeaderSignature(header data.HeaderHandler) error {
+	leaderPubKey, err := hsv.getLeader(header)
+	if err != nil {
+		return err
+	}
+
+	err = hsv.verifyRandSeed(leaderPubKey, header)
+	if err != nil {
+		return err
+	}
+
+	return hsv.verifyLeaderSignature(leaderPubKey, header)
+}
+
+func (hsv *headerSigVerifier) verifyRandSeed(leaderPubKey crypto.PublicKey, header data.HeaderHandler) error {
+	prevRandSeed := header.GetPrevRandSeed()
+	randSeed := header.GetRandSeed()
+	return hsv.singleSigVerifier.Verify(leaderPubKey, prevRandSeed, randSeed)
+}
+
+func (hsv *headerSigVerifier) verifyLeaderSignature(leaderPubKey crypto.PublicKey, header data.HeaderHandler) error {
+	headerCopy := hsv.copyHeaderWithoutLeaderSig(header)
+	headerBytes, err := hsv.marshalizer.Marshal(&headerCopy)
+	if err != nil {
+		return err
+	}
+
+	return hsv.singleSigVerifier.Verify(leaderPubKey, headerBytes, header.GetLeaderSignature())
+}
+
+func (hsv *headerSigVerifier) getLeader(header data.HeaderHandler) (crypto.PublicKey, error) {
 	prevRandSeed := header.GetPrevRandSeed()
 	headerConsensusGroup, err := hsv.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, header.GetRound(), header.GetShardID())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	randSeed := header.GetRandSeed()
 	leaderPubKeyValidator := headerConsensusGroup[0]
-	leaderPubKey, err := hsv.keyGen.PublicKeyFromByteArray(leaderPubKeyValidator.PubKey())
-	if err != nil {
-		return err
-	}
-
-	err = hsv.singleSigVerifier.Verify(leaderPubKey, prevRandSeed, randSeed)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return hsv.keyGen.PublicKeyFromByteArray(leaderPubKeyValidator.PubKey())
 }
 
 func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
