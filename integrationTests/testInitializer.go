@@ -845,9 +845,10 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 	time.Sleep(P2pBootstrapDelay)
 }
 
-// SetEconomicsParameters will set minGasPrice and minGasLimits to provided nodes
-func SetEconomicsParameters(nodes []*TestProcessorNode, minGasPrice uint64, minGasLimit uint64) {
+// SetEconomicsParameters will set maxGasLimitPerBlock, minGasPrice and minGasLimits to provided nodes
+func SetEconomicsParameters(nodes []*TestProcessorNode, maxGasLimitPerBlock uint64, minGasPrice uint64, minGasLimit uint64) {
 	for _, n := range nodes {
+		n.EconomicsData.SetMaxGasLimitPerBlock(maxGasLimitPerBlock)
 		n.EconomicsData.SetMinGasPrice(minGasPrice)
 		n.EconomicsData.SetMinGasLimit(minGasLimit)
 	}

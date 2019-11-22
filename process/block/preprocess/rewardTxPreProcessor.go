@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -39,40 +40,45 @@ func NewRewardTxPreprocessor(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	onRequestRewardTransaction func(shardID uint32, txHashes [][]byte),
+	gasHandler process.GasHandler,
 ) (*rewardTxPreprocessor, error) {
 
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if rewardTxDataPool == nil || rewardTxDataPool.IsInterfaceNil() {
+	if check.IfNil(rewardTxDataPool) {
 		return nil, process.ErrNilRewardTxDataPool
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, process.ErrNilStorage
 	}
-	if rewardProcessor == nil || rewardProcessor.IsInterfaceNil() {
+	if check.IfNil(rewardProcessor) {
 		return nil, process.ErrNilRewardsTxProcessor
 	}
-	if rewardProducer == nil || rewardProcessor.IsInterfaceNil() {
+	if check.IfNil(rewardProducer) {
 		return nil, process.ErrNilInternalTransactionProducer
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
 	if onRequestRewardTransaction == nil {
 		return nil, process.ErrNilRequestHandler
+	}
+	if check.IfNil(gasHandler) {
+		return nil, process.ErrNilGasHandler
 	}
 
 	bpp := &basePreProcess{
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
+		gasHandler:       gasHandler,
 	}
 
 	rtp := &rewardTxPreprocessor{
@@ -182,7 +188,12 @@ func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
 }
 
 // ProcessBlockTransactions processes all the reward transactions from the block.Body, updates the state
-func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() bool) error {
+func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
+	body block.Body,
+	round uint64,
+	haveTime func() bool,
+) error {
+
 	rewardMiniBlocksSlice := make(block.MiniBlockSlice, 0)
 	computedRewardsMbsMap := rtp.rewardsProducer.CreateAllInterMiniBlocks()
 	for _, mb := range computedRewardsMbsMap {
@@ -196,6 +207,8 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(body block.Body, round
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
+
+		//TODO: Should be checked max gas limit per block also when a node processes reward transactions from a received block?
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if !haveTime() {
@@ -451,7 +464,13 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 }
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the reward transactions added into the miniblock
-func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error) {
+func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlock(
+	senderShardId, receiverShardId uint32,
+	spaceRemained int,
+	haveTime func() bool,
+	round uint64,
+) (*block.MiniBlock, error) {
+
 	return nil, nil
 }
 
@@ -476,16 +495,23 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	}
 
 	snapshot := rtp.accounts.JournalLen()
+	processedTxHashes := make([][]byte, 0)
 
 	for _, mb := range rewardMiniBlocksSlice {
+		processedTxHashes = append(processedTxHashes, mb.TxHashes...)
+
 		err := rtp.ProcessMiniBlock(mb, haveTime, round)
 		if err != nil {
 			log.Debug("reward txs ProcessMiniBlock", "error", err.Error())
+
 			errAccountState := rtp.accounts.RevertToSnapshot(snapshot)
 			if errAccountState != nil {
 				// TODO: evaluate if reloading the trie from disk will solve the problem
 				log.Debug("RevertToSnapshot", "error", errAccountState.Error())
 			}
+
+			rtp.gasHandler.RemoveGasConsumed(processedTxHashes)
+			rtp.gasHandler.RemoveGasRefunded(processedTxHashes)
 			return nil, err
 		}
 	}
@@ -495,7 +521,12 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 
 // ProcessMiniBlock processes all the reward transactions from a miniblock and saves the processed reward transactions
 // in local cache
-func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error {
+func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
+	miniBlock *block.MiniBlock,
+	haveTime func() bool,
+	round uint64,
+) error {
+
 	if miniBlock.Type != block.RewardsBlock {
 		return process.ErrWrongTypeInMiniBlock
 	}
@@ -509,6 +540,8 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		if !haveTime() {
 			return process.ErrTimeIsOut
 		}
+
+		//TODO: Should be checked max gas limit per block also for reward transactions from/to me?
 
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[index])
 		if err != nil {
