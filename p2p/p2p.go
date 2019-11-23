@@ -206,6 +206,7 @@ type PeerDiscoveryFactory interface {
 // PeerShardResolver is able to resolve the link between the provided PeerID and the shardID
 type PeerShardResolver interface {
 	ByID(pid PeerID) uint32 //ByID get the shard id of the given peer.ID
+	NumShards() uint32      //NumShards get the number of shards
 	IsInterfaceNil() bool   //IsInterfaceNil returns true if there is no value under the interface
 }
 

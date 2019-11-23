@@ -12,13 +12,6 @@ const (
 	fullMaskBits = 0xff
 )
 
-// KadPeerShardResolver peer to shard mapping interface
-type KadPeerShardResolver interface {
-	ByID(p2p.PeerID) uint32 //ByID get the shard id of the given peer.ID
-	NumShards() int         //NumShards get the number of shards
-	IsInterfaceNil() bool   //IsInterfaceNil returns true if there is no value under the interface
-}
-
 // kadSharder KAD based sharder
 //
 // Resets a number of MSb to decrease the distance between nodes from the same shard
@@ -30,7 +23,7 @@ type kadSharder struct {
 // NewKadSharder kadSharder constructor
 // prioBits - Number of reseted bits.
 // f - Callback used to get the shard id for a given peer.ID
-func NewKadSharder(prioBits uint32, kgs KadPeerShardResolver) (Sharder, error) {
+func NewKadSharder(prioBits uint32, kgs p2p.PeerShardResolver) (Sharder, error) {
 	if prioBits == 0 || kgs == nil || kgs.IsInterfaceNil() {
 		return nil, ErrBadParams
 	}

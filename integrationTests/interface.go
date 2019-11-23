@@ -16,6 +16,7 @@ type TestBootstrapper interface {
 // NetworkShardingUpdater defines the updating methods used by the network sharding component
 type NetworkShardingUpdater interface {
 	ByID(pid p2p.PeerID) (shardId uint32)
+	NumShards() uint32
 	UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte)
 	UpdatePublicKeyShardId(pk []byte, shardId uint32)
 	UpdatePeerIdShardId(pid p2p.PeerID, shardId uint32)

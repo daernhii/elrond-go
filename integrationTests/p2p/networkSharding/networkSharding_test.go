@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 )
@@ -14,13 +13,9 @@ import (
 var p2pBootstrapStepDelay = 2 * time.Second
 
 func TestConnectionsInNetworkSharding(t *testing.T) {
-	//TODO remove this skip
-	t.Skip("this test fails for the moment")
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	logger.DefaultLogger().SetLevel(logger.LogDebug)
 
 	nodesPerShard := 7
 	nbMetaNodes := 7

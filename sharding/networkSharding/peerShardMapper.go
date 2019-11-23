@@ -61,6 +61,10 @@ func (psm *PeerShardMapper) ByID(pid p2p.PeerID) (shardId uint32) {
 	return psm.byIDSearchingPidInFallbackCache(pid)
 }
 
+func (psm *PeerShardMapper) NumShards() uint32 {
+	panic("TODO: implement me if required")
+}
+
 func (psm *PeerShardMapper) byIDWithNodesCoordinator(pid p2p.PeerID) (shardId uint32, pk []byte, ok bool) {
 	pkObj, ok := psm.peerIdPk.Get([]byte(pid))
 	if !ok {
