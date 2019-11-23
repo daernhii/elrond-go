@@ -12,6 +12,10 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
+const (
+	watchdogTimeout = 5 * time.Minute
+)
+
 // DurationBetweenReconnectAttempts is used as to not call reconnecter.ReconnectToNetwork() to often
 // when there are a lot of peers disconnecting and reconnection to initial nodes succeed
 var DurationBetweenReconnectAttempts = time.Second * 5
@@ -25,6 +29,7 @@ type libp2pConnectionMonitor struct {
 	thresholdConnTrim          int // if the number of connections is over this value, we start trimming
 	mutSharder                 sync.RWMutex
 	sharder                    networksharding.Sharder
+	watchdogKick               chan struct{}
 }
 
 func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnectedPeers int, targetConnCount int) (*libp2pConnectionMonitor, error) {
@@ -40,6 +45,7 @@ func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnect
 		thresholdDiscoveryPause:    math.MaxInt32,
 		thresholdConnTrim:          math.MaxInt32,
 		sharder:                    &networksharding.NoSharder{},
+		watchdogKick:               nil,
 	}
 
 	if targetConnCount > 0 {
@@ -50,6 +56,7 @@ func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnect
 
 	if reconnecter != nil {
 		go cm.doReconnection()
+		cm.watchdogKick = reconnecter.StartWatchdog(watchdogTimeout)
 	}
 
 	return cm, nil
@@ -69,20 +76,30 @@ func (lcm *libp2pConnectionMonitor) doReconn() {
 	}
 }
 
+func (lcm *libp2pConnectionMonitor) kickWatchdog() {
+	if lcm.watchdogKick != nil {
+		select {
+		case lcm.watchdogKick <- struct{}{}:
+		default:
+		}
+	}
+}
+
 // Connected is called when a connection opened
 func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network.Conn) {
-	if len(netw.Conns()) > lcm.thresholdDiscoveryPause {
-		lcm.reconnecter.Pause()
-	}
 	if len(netw.Conns()) > lcm.thresholdConnTrim {
 		lcm.mutSharder.RLock()
-		sorted := lcm.sharder.SortList(netw.Peers(), netw.LocalPeer())
+		sorted, isBalanced := lcm.sharder.SortList(netw.Peers(), netw.LocalPeer())
 		lcm.mutSharder.RUnlock()
 		for i := lcm.thresholdDiscoveryPause; i < len(sorted); i++ {
 			_ = netw.ClosePeer(sorted[i])
 		}
 		lcm.doReconn()
+		if isBalanced && lcm.reconnecter != nil {
+			lcm.reconnecter.Pause()
+		}
 	}
+	lcm.kickWatchdog()
 }
 
 // Disconnected is called when a connection closed
@@ -93,6 +110,7 @@ func (lcm *libp2pConnectionMonitor) Disconnected(netw network.Network, conn netw
 		lcm.reconnecter.Resume()
 		lcm.doReconn()
 	}
+	lcm.kickWatchdog()
 }
 
 func (lcm *libp2pConnectionMonitor) doReconnectionIfNeeded(netw network.Network) {
