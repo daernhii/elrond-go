@@ -37,6 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -140,11 +141,13 @@ type TestProcessorNode struct {
 	BlockChainHookImpl     process.BlockChainHookHandler
 	GasHandler             process.GasHandler
 
-	ForkDetector       process.ForkDetector
-	BlockProcessor     process.BlockProcessor
-	BroadcastMessenger consensus.BroadcastMessenger
-	Bootstrapper       TestBootstrapper
-	Rounder            *mock.RounderMock
+	ForkDetector        process.ForkDetector
+	BlockProcessor      process.BlockProcessor
+	BroadcastMessenger  consensus.BroadcastMessenger
+	Bootstrapper        TestBootstrapper
+	Rounder             *mock.RounderMock
+	BootstrapStorer     *mock.BoostrapStorerMock
+	StorageBootstrapper *mock.StorageBootstrapperMock
 
 	MultiSigner crypto.MultiSigner
 
@@ -194,6 +197,9 @@ func NewTestProcessorNode(
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
 	tpn.initTestNode()
+
+	tpn.StorageBootstrapper = &mock.StorageBootstrapperMock{}
+	tpn.BootstrapStorer = &mock.BoostrapStorerMock{}
 
 	return tpn
 }
@@ -659,6 +665,11 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		BlockChainHook:               tpn.BlockChainHookImpl,
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		Rounder:                      &mock.RounderMock{},
+		BootstrapStorer: &mock.BoostrapStorerMock{
+			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
+				return nil
+			},
+		},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {

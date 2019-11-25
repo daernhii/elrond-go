@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -68,6 +69,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		blockChainHook:                arguments.BlockChainHook,
 		txCoordinator:                 arguments.TxCoordinator,
 		rounder:                       arguments.Rounder,
+		bootStorer:                    arguments.BootstrapStorer,
 		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
 	}
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
@@ -742,6 +744,31 @@ func (sp *shardProcessor) CommitBlock(
 		headerMeta.GetNonce(),
 	)
 
+	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+		ShardId: header.ShardId,
+		Nonce:   header.Nonce,
+		Hash:    headerHash,
+	}
+
+	log.Debug("validator info on block ",
+		"nonce", header.Nonce,
+		"validator root hash", core.ToB64(header.ValidatorStatsRootHash))
+
+	processedMiniBlock := make(map[string]map[string]struct{})
+	sp.mutProcessedMiniBlocks.Lock()
+	log.Debug("processed mini blocks on commit block")
+	for key, value := range sp.processedMiniBlocks {
+		log.Debug("meta hash ", []byte(key))
+		processedMiniBlock[key] = value
+
+		for miniBlockHash := range value {
+			log.Debug("mini block hash", []byte(miniBlockHash))
+		}
+	}
+	sp.mutProcessedMiniBlocks.Unlock()
+
+	sp.prepareDataForBootStorer(headerInfo, header.Round, finalHeaders, finalHeadersHashes, processedMiniBlock)
+
 	go sp.cleanTxsPools()
 
 	// write data to log
@@ -768,6 +795,15 @@ func (sp *shardProcessor) CommitBlock(
 	go sp.cleanupPools(headersNoncesPool, headersPool, sp.dataPool.MetaBlocks())
 
 	return nil
+}
+
+// ApplyProcessedMiniBlocks will apply processed mini blocks
+func (sp *shardProcessor) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
+	sp.mutProcessedMiniBlocks.Lock()
+	for key, value := range miniBlocks {
+		sp.processedMiniBlocks[key] = value
+	}
+	sp.mutProcessedMiniBlocks.Unlock()
 }
 
 func (sp *shardProcessor) cleanTxsPools() {
@@ -806,10 +842,6 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 		}
 
 		ownShIdHdrs = append(ownShIdHdrs, hdrs...)
-	}
-
-	if len(ownShIdHdrs) == 0 {
-		ownShIdHdrs = append(ownShIdHdrs, &block.Header{})
 	}
 
 	process.SortHeadersByNonce(ownShIdHdrs)
