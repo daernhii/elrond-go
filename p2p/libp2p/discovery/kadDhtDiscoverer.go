@@ -1,16 +1,13 @@
 package discovery
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
 
@@ -76,16 +73,11 @@ func (kdd *KadDhtDiscoverer) Bootstrap() error {
 	ctx := kdd.contextProvider.Context()
 	h := kdd.contextProvider.Host()
 
-	protos := []protocol.ID{
-		protocol.ID(fmt.Sprintf("/ipfs/kad/1.0.0/erd_%s", kdd.randezVous)),
-		protocol.ID("/ipfs/kad/1.0.0/erd"),
-	}
-
 	// Start a DHT, for use in peer discovery. We can't just make a new DHT
 	// client because we want each peer to maintain its own local copy of the
 	// DHT, so that the bootstrapping node of the DHT can go down without
 	// inhibiting future peer discovery.
-	kademliaDHT, err := dht.New(ctx, h, opts.Protocols(protos...))
+	kademliaDHT, err := dht.New(ctx, h)
 	if err != nil {
 		return err
 	}

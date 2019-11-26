@@ -193,6 +193,13 @@ func createMessenger(
 		}
 	}(pb, netMes.outgoingPLB)
 
+	go func() {
+		for {
+			time.Sleep(time.Second * 20)
+			log.Debug("network connection status", "connected peers", len(netMes.Peers()))
+		}
+	}()
+
 	addresses := make([]interface{}, 0)
 	for i, address := range netMes.ctxProvider.Host().Addrs() {
 		addresses = append(addresses, fmt.Sprintf("addr%d", i))
