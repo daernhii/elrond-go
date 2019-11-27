@@ -31,17 +31,23 @@ func NewConnectableHost(h host.Host) *connectableHost {
 
 // ConnectToPeer connects to a peer by knowing its string address
 func (connHost *connectableHost) ConnectToPeer(ctx context.Context, address string) error {
+	pinfo, err := connHost.ExtractPeerInfo(address)
+	if err != nil {
+		return err
+	}
+
+	return connHost.Connect(ctx, *pinfo)
+}
+
+// ExtractPeerInfo extracts the peer info data from a provided address string
+// Errors if the operation did not succeed or the string is badly formatted
+func (connHost *connectableHost) ExtractPeerInfo(address string) (*peer.AddrInfo, error) {
 	multiAddr, err := multiaddr.NewMultiaddr(address)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	pInfo, err := peer.AddrInfoFromP2pAddr(multiAddr)
-	if err != nil {
-		return err
-	}
-
-	return connHost.Connect(ctx, *pInfo)
+	return peer.AddrInfoFromP2pAddr(multiAddr)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -18,7 +18,7 @@ import (
 
 var timeoutWaitResponses = 2 * time.Second
 
-func createDummyHost() libp2p2.ConnectableHost {
+func createDummyHost() libp2p.ConnectableHost {
 	netw := mocknet.New(context.Background())
 
 	h, _ := netw.GenPeer()

@@ -205,3 +205,13 @@ type PeerShardResolver interface {
 	ByID(pid PeerID) uint32 //ByID get the shard id of the given peer.ID
 	IsInterfaceNil() bool   //IsInterfaceNil returns true if there is no value under the interface
 }
+
+// Sharder is able to decide what is the current network connection status and
+// can influence the operation of other certain components like the discovery mechanism and connection monitor
+type Sharder interface {
+	ShouldReconnectToSeedNodes() bool
+	ShouldFindNewPeers() bool
+	CanConnectToPeer(current PeerID, connectedTo []PeerID, newPeer PeerID) bool
+	PeersForDisconnecting(current PeerID, connectedTo []PeerID) []PeerID
+	IsInterfaceNil() bool
+}

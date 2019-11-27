@@ -3,11 +3,28 @@ package networksharding
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // NoSharder default sharder, only uses Kademlia distance in sorting
 type NoSharder struct {
+}
+
+func (ns *NoSharder) ShouldReconnectToSeedNodes() bool {
+	return false
+}
+
+func (ns *NoSharder) ShouldFindNewPeers() bool {
+	return true
+}
+
+func (ns *NoSharder) CanConnectToPeer(current p2p.PeerID, connectedTo []p2p.PeerID, newPeer p2p.PeerID) bool {
+	return true
+}
+
+func (ns *NoSharder) PeersForDisconnecting(current p2p.PeerID, connectedTo []p2p.PeerID) []p2p.PeerID {
+	return make([]p2p.PeerID, 0)
 }
 
 // GetShard always 0

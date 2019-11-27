@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -17,8 +18,7 @@ func NewLibp2pContext(ctx context.Context, connHost ConnectableHost) (*Libp2pCon
 	if ctx == nil {
 		return nil, p2p.ErrNilContext
 	}
-
-	if connHost == nil || connHost.IsInterfaceNil() {
+	if check.IfNil(connHost) {
 		return nil, p2p.ErrNilHost
 	}
 
@@ -40,8 +40,5 @@ func (lctx *Libp2pContext) Host() ConnectableHost {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (lctx *Libp2pContext) IsInterfaceNil() bool {
-	if lctx == nil {
-		return true
-	}
-	return false
+	return lctx == nil
 }
