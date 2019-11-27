@@ -22,6 +22,7 @@ import (
 )
 
 const durationBetweenSends = time.Microsecond * 10
+const durationBetweenPeersPrints = time.Second * 20
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
 const ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
@@ -192,6 +193,20 @@ func createMessenger(
 			time.Sleep(durationBetweenSends)
 		}
 	}(pb, netMes.outgoingPLB)
+
+	go func() {
+		for {
+			time.Sleep(durationBetweenPeersPrints)
+
+			peersCount := netMes.GetPeerCounts()
+			log.Debug("network connection status",
+				"connected peers", len(netMes.Peers()),
+				"intra shard", peersCount.IntraShardPeers,
+				"cross shard", peersCount.CrossShardPeers,
+				"unknown", peersCount.UnknownPeers,
+			)
+		}
+	}()
 
 	addresses := make([]interface{}, 0)
 	for i, address := range netMes.ctxProvider.Host().Addrs() {
@@ -563,31 +578,25 @@ func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerS
 	return netMes.connMonitor.SetSharder(kadSharder)
 }
 
-// GetPeerStats gets the current connected peer counts
-func (netMes *networkMessenger) GetPeerStats() *p2p.PeerStats {
+// GetPeerCounts gets the current connected peer counts
+func (netMes *networkMessenger) GetPeerCounts() *p2p.PeerCounts {
 	peers := netMes.ctxProvider.connHost.Network().Peers()
-	intra := 0
-	cross := 0
-	unknown := 0
+	peerCounts := &p2p.PeerCounts{}
 	crt := netMes.connMonitor.sharder.GetShard(netMes.ctxProvider.connHost.ID())
 
 	for _, p := range peers {
 		shard := netMes.connMonitor.sharder.GetShard(p)
 		switch shard {
 		case sharding.UnknownShardId:
-			unknown++
+			peerCounts.UnknownPeers++
 		case crt:
-			intra++
+			peerCounts.IntraShardPeers++
 		default:
-			cross++
+			peerCounts.CrossShardPeers++
 		}
 	}
 
-	return &p2p.PeerStats{
-		UnknownPeers:    unknown,
-		IntraShardPeers: intra,
-		CrossShardPeers: cross,
-	}
+	return peerCounts
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
