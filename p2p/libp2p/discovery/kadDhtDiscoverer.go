@@ -79,18 +79,25 @@ func (kdd *KadDhtDiscoverer) Bootstrap() error {
 
 	ctx := kdd.contextProvider.Context()
 	h := kdd.contextProvider.Host()
+	ctxrun, cancel := context.WithCancel(ctx)
 
 	protos := []protocol.ID{
 		protocol.ID(fmt.Sprintf("/ipfs/kad/1.0.0/erd_%s", kdd.randezVous)),
 		protocol.ID("/ipfs/kad/1.0.0/erd"),
 	}
 
+	hd, err := NewHostDecorator(h, ctxrun, 3, time.Second)
+	if err != nil {
+		cancel()
+		return err
+	}
 	// Start a DHT, for use in peer discovery. We can't just make a new DHT
 	// client because we want each peer to maintain its own local copy of the
 	// DHT, so that the bootstrapping node of the DHT can go down without
 	// inhibiting future peer discovery.
-	kademliaDHT, err := dht.New(ctx, h, opts.Protocols(protos...))
+	kademliaDHT, err := dht.New(ctx, hd, opts.Protocols(protos...))
 	if err != nil {
+		cancel()
 		return err
 	}
 
