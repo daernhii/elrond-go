@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	protocol "github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
@@ -125,7 +125,6 @@ func (kdd *KadDhtDiscoverer) startDHT() error {
 		return err
 	}
 
-	ctxrun, cancel := context.WithCancel(ctx)
 	go kdd.connectToInitialAndBootstrap(ctxrun)
 
 	kdd.kadDHT = kademliaDHT
