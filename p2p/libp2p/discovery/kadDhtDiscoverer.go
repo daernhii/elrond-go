@@ -108,9 +108,20 @@ func (kdd *KadDhtDiscoverer) protocols() []protocol.ID {
 func (kdd *KadDhtDiscoverer) startDHT() error {
 	ctx := kdd.contextProvider.Context()
 	h := kdd.contextProvider.Host()
+	ctxrun, cancel := context.WithCancel(ctx)
 
-	kademliaDHT, err := dht.New(ctx, h, opts.Protocols(kdd.protocols()...))
+	hd, err := NewHostDecorator(h, ctxrun, 3, time.Second)
 	if err != nil {
+		cancel()
+		return err
+	}
+	// Start a DHT, for use in peer discovery. We can't just make a new DHT
+	// client because we want each peer to maintain its own local copy of the
+	// DHT, so that the bootstrapping node of the DHT can go down without
+	// inhibiting future peer discovery.
+	kademliaDHT, err := dht.New(ctx, hd, opts.Protocols(kdd.protocols()...))
+	if err != nil {
+		cancel()
 		return err
 	}
 
