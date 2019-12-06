@@ -46,6 +46,12 @@ type TypeConfig struct {
 	Type string `json:"type"`
 }
 
+// MarshalizerConfig
+type MarshalizerConfig struct {
+	Type           string `json:"type"`
+	SizeCheckDelta uint32 `json:"sizeCheckDelta"`
+}
+
 // NTPConfig will hold the configuration for NTP queries
 type NTPConfig struct {
 	Hosts               []string
@@ -94,7 +100,7 @@ type Config struct {
 	BLSPublicKey   AddressConfig
 	Hasher         TypeConfig
 	MultisigHasher TypeConfig
-	Marshalizer    TypeConfig
+	Marshalizer    MarshalizerConfig
 
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig
