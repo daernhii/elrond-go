@@ -1518,6 +1518,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		data.Datapool,
 		core.Uint64ByteSliceConverter,
 		dataPacker,
+		sizeCheckDelta,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1578,6 +1579,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		data.MetaDatapool,
 		core.Uint64ByteSliceConverter,
 		dataPacker,
+		sizeCheckDelta,
 	)
 	if err != nil {
 		return nil, nil, nil, err
