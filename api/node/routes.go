@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
+	"runtime"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -54,6 +55,7 @@ func Routes(router *gin.RouterGroup) {
 	router.GET("/heartbeatstatus", HeartbeatStatus)
 	router.GET("/statistics", Statistics)
 	router.GET("/status", StatusMetrics)
+	router.GET("/gc", GcCollect)
 }
 
 // Address returns the information about the address passed as parameter
@@ -117,6 +119,13 @@ func StatusMetrics(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"details": details})
+}
+
+// GcCollect forces a GC collection
+func GcCollect(c *gin.Context) {
+	runtime.GC()
+
+	c.JSON(http.StatusOK, gin.H{"GC collection": "done"})
 }
 
 func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResponse {
