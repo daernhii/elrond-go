@@ -164,6 +164,10 @@ type TestProcessorNode struct {
 	MultiSigner       crypto.MultiSigner
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
 
+	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
+
+	blockProcessorInitializer BlockProcessorInitializer
+
 	//Node is used to call the functionality already implemented in it
 	Node           *node.Node
 	SCQueryService external.SCQueryService
@@ -210,6 +214,9 @@ func NewTestProcessorNode(
 		Sk: sk,
 		Pk: pk,
 	}
+
+	tpn.blockProcessorInitializer = tpn
+
 	tpn.MultiSigner = TestMultiSig
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
@@ -283,7 +290,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.MetaDataPool,
 		tpn.EconomicsData.EconomicsData,
 	)
-	tpn.initBlockProcessor()
+	tpn.blockProcessorInitializer.InitBlockProcessor()
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
 		tpn.Messenger,
@@ -1170,4 +1177,8 @@ func (tpn *TestProcessorNode) initRounder() {
 
 func (tpn *TestProcessorNode) initRequestedItemsHandler() {
 	tpn.RequestedItemsHandler = timecache.NewTimeCache(roundDuration)
+}
+
+func (tpn *TestProcessorNode) InitBlockProcessor() {
+	tpn.initBlockProcessor()
 }
