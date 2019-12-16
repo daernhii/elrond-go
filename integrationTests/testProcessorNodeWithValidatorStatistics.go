@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	scToProtocol2 "github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -23,7 +24,7 @@ type TestProcessorNodeWithValidatorStatistics struct {
 }
 
 // CreateNodesWithNodesCoordinator returns a map with nodes per shard each using a real nodes coordinator
-func CreateNodesWithNodesCoordinatorWithRater(
+func CreateNodesWithNodesCoordinatorWithValidatorStatistics(
 	nodesPerShard int,
 	nbMetaNodes int,
 	nbShards int,
@@ -55,7 +56,7 @@ func CreateNodesWithNodesCoordinatorWithRater(
 
 		nodesList := make([]*TestProcessorNode, len(validatorList))
 		for i := range validatorList {
-			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinatorAndRater(
+			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinatorAndValidatorStatistics(
 				uint32(nbShards),
 				shardId,
 				seedAddress,
@@ -135,6 +136,11 @@ func (tpn *TestProcessorNodeWithValidatorStatistics) initBlockProcessor() {
 		BlockChainHook:               tpn.BlockchainHook,
 		ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 		Rounder:                      &mock.RounderMock{},
+		BootStorer: &mock.BoostrapStorerMock{
+			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
+				return nil
+			},
+		},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -161,7 +167,7 @@ func (tpn *TestProcessorNodeWithValidatorStatistics) initBlockProcessor() {
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
-		argumentsBase.BlockChainHook = tpn.BlockChainHookImpl
+		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
@@ -178,7 +184,7 @@ func (tpn *TestProcessorNodeWithValidatorStatistics) initBlockProcessor() {
 }
 
 // NewTestProcessorNodeWithCustomNodesCoordinator returns a new TestProcessorNode instance with custom NodesCoordinator
-func NewTestProcessorNodeWithCustomNodesCoordinatorAndRater(
+func NewTestProcessorNodeWithCustomNodesCoordinatorAndValidatorStatistics(
 	maxShards uint32,
 	nodeShardId uint32,
 	initialNodeAddr string,
@@ -192,16 +198,16 @@ func NewTestProcessorNodeWithCustomNodesCoordinatorAndRater(
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 	tpn := &TestProcessorNodeWithValidatorStatistics{
 		TestProcessorNode{
-			ShardCoordinator: shardCoordinator,
-			Messenger:        messenger,
-			NodesCoordinator: nodesCoordinator,
+			ShardCoordinator:  shardCoordinator,
+			Messenger:         messenger,
+			NodesCoordinator:  nodesCoordinator,
+			HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		},
 	}
 
-	tpn.BlockProcessorInitializer = &blockProcessorInitializer{InitBlockProcessorCalled: tpn.initBlockProcessor}
+	tpn.blockProcessorInitializer = tpn
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
-	tpn.Rater = rater
 	llsig := &kmultisig.KyberMultiSignerBLS{}
 	blsHasher := blake2b.Blake2b{HashSize: factory.BlsHashSize}
 
@@ -228,4 +234,8 @@ func NewTestProcessorNodeWithCustomNodesCoordinatorAndRater(
 	tpn.initTestNode()
 
 	return &tpn.TestProcessorNode
+}
+
+func (tpn *TestProcessorNodeWithValidatorStatistics) InitBlockProcessor() {
+	tpn.initBlockProcessor()
 }
