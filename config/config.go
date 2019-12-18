@@ -60,9 +60,16 @@ type NTPConfig struct {
 	Version             int
 }
 
+// EpochStartConfig will hold the configuration of EpochStart settings
+type EpochStartConfig struct {
+	MinRoundsBetweenEpochs int64
+	RoundsPerEpoch         int64
+}
+
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage          StorageConfig
+	MiniBlockHeadersStorage    StorageConfig
 	PeerBlockBodyStorage       StorageConfig
 	BlockHeaderStorage         StorageConfig
 	TxStorage                  StorageConfig
@@ -95,12 +102,13 @@ type Config struct {
 	ShardHeadersDataPool          CacheConfig
 	MetaHeaderNoncesDataPool      CacheConfig
 
-	Logger         LoggerConfig
-	Address        AddressConfig
-	BLSPublicKey   AddressConfig
-	Hasher         TypeConfig
-	MultisigHasher TypeConfig
-	Marshalizer    MarshalizerConfig
+	EpochStartConfig EpochStartConfig
+	Logger           LoggerConfig
+	Address          AddressConfig
+	BLSPublicKey     AddressConfig
+	Hasher           TypeConfig
+	MultisigHasher   TypeConfig
+	Marshalizer      MarshalizerConfig
 
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig
