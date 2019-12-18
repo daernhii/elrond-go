@@ -75,6 +75,7 @@ func setupRater(rd *economics.RatingsData, pk string, initialRating uint32) *rat
 func TestBlockSigningRater_GetRatingWithNotSetRatingReaderShouldReturnStartRating(t *testing.T) {
 	rd := createDefaultRatingsData()
 	initialRating := uint32(5)
+
 	bsr := setupRater(rd, "existing", initialRating)
 
 	rt := bsr.GetRating("nonexisting")
