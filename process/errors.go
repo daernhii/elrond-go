@@ -572,9 +572,6 @@ var ErrNilHeaderValidator = errors.New("nil header validator")
 // ErrLastFinalizedMetaHashForShardNotFound signals that last finalized metahash for shard could not been found
 var ErrLastFinalizedMetaHashForShardNotFound = errors.New("could not find last finalized metahash for shard")
 
-// ErrMinRating signals that the minrating cannot be smaller than 1
-var ErrMinRatingIsSmallerThanOne = errors.New("min rating is smaller than one")
-
 // ErrMaxRatingIsSmallerThanMinRating signals that the max rating is smaller than the min rating value
 var ErrMaxRatingIsSmallerThanMinRating = errors.New("max rating is smaller than min rating")
 

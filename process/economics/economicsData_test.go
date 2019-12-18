@@ -430,18 +430,6 @@ func TestEconomicsData_BurnAddress(t *testing.T) {
 	assert.Equal(t, burnAddress, value)
 }
 
-func TestEconomicsData_RatingsDataMinSmallerThanOneShouldErr(t *testing.T) {
-	t.Parallel()
-
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.RatingSettings.MinRating = 0
-
-	economicsData, err := economics.NewEconomicsData(economicsConfig)
-
-	assert.Nil(t, economicsData)
-	assert.Equal(t, process.ErrMinRatingIsSmallerThanOne, err)
-}
-
 func TestEconomicsData_RatingsDataMinGreaterMaxShouldErr(t *testing.T) {
 	t.Parallel()
 
