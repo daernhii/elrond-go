@@ -268,7 +268,7 @@
 #     0 disables the feature.
 [Marshalizer]
    Type = "json"
-   SizeCheckDelta = 0
+   SizeCheckDelta = 100
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
