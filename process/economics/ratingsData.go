@@ -26,6 +26,7 @@ func NewRatingsData(
 	if settings.MaxRating < settings.StartRating || settings.MinRating > settings.StartRating {
 		return nil, process.ErrStartRatingNotBetweenMinAndMax
 	}
+
 	return &RatingsData{
 		startRating:                 settings.StartRating,
 		maxRating:                   settings.MaxRating,
